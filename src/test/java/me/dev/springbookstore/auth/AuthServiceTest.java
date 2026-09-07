@@ -35,9 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
@@ -61,5 +59,188 @@ public class AuthServiceTest {
     }
 
 
+    @Test
+    void shouldCreateAdminWithAdminRoleWhenUserDoesNotExist() throws Exception {
+        String username = "admin";
+        String password = "admin2224";
+        String email = "admin@email.com";
+
+        when(userRepository.existsByUsername(username)).thenReturn(false);
+        when(passwordEncoder.encode(password))
+                .thenReturn("encodedPassword");
+
+        ApplicationRunner applicationRunner = config.createInitialAdmin(
+                userRepository,
+                passwordEncoder,
+                username,
+                password,
+                email
+        );
+
+        applicationRunner.run(null);
+
+
+
+        ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
+        verify(userRepository).save(captor.capture());
+        UserEntity savedUser = captor.getValue();
+
+
+
+        assertEquals(username, savedUser.getUsername());
+        assertEquals(email, savedUser.getEmail());
+        assertEquals("encodedPassword", savedUser.getPassword());
+        assertEquals(UserRole.ADMIN, savedUser.getRole());
+
+
+    }
+
+    @Test
+    void shouldNotCreateAdminWhenUserAlreadyExists() throws Exception {
+
+
+        String username = "admin";
+        String password = "admin2224";
+        String email = "admin@email.com";
+
+        when(userRepository.existsByUsername(username)).thenReturn(true);
+
+        ApplicationRunner applicationRunner = config.createInitialAdmin(
+                userRepository,
+                passwordEncoder,
+                username,
+                password,
+                email
+        );
+
+        applicationRunner.run(null);
+        verify(userRepository, never()).save(any(UserEntity.class));
+
+    }
+
+    @Test
+    void shouldRegisterUserWhenUsernameAndEmailAreAvailable() {
+
+        String username = "user";
+        String password = "user2224";
+        String email = "user@email.com";
+        String encodedPassword = "encodedPassword";
+
+        RegisterRequest request = new RegisterRequest(username, email, password);
+
+        when(userRepository.existsByUsername(username)).thenReturn(false);
+        when(userRepository.existsByEmail(email)).thenReturn(false);
+        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+
+        UserEntity savedEntity = new UserEntity();
+        savedEntity.setId(1L);
+
+        when(userRepository.save(any(UserEntity.class))).thenReturn(savedEntity);
+
+
+        authService.register(request);
+
+        ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
+
+        verify(userRepository).save(captor.capture());
+
+        UserEntity savedUser = captor.getValue();
+
+
+        assertEquals(username, savedUser.getUsername());
+        assertEquals(email, savedUser.getEmail());
+        assertEquals(encodedPassword, savedUser.getPassword());
+        assertEquals(UserRole.USER, savedUser.getRole());
+
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUsernameAlreadyExists() {
+
+        String username = "username";
+        String email = "email";
+        String password = "password";
+        when(userRepository.existsByUsername(username)).thenReturn(true);
+
+        RegisterRequest request = new RegisterRequest(
+                username,
+                email,
+                password
+        );
+
+
+        assertThatExceptionOfType(UsernameAlreadyExistsException.class)
+                .isThrownBy(() -> authService.register(request));
+
+
+        verify(userRepository, never()).save(any(UserEntity.class));
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenEmailAlreadyExists() {
+
+        String username = "username";
+        String email = "email";
+        String password = "password";
+        when(userRepository.existsByEmail(email)).thenReturn(true);
+
+        RegisterRequest request = new RegisterRequest(
+                username,
+                email,
+                password
+        );
+
+        assertThatExceptionOfType(EmailAlreadyExistsException.class)
+                .isThrownBy(() -> authService.register(request));
+
+
+        verify(userRepository, never()).save(any(UserEntity.class));
+
+
+    }
+
+
+
+
+    @Test
+    void shouldLoginSuccessfullyWithValidCredentials() {
+        String username = "username";
+        String password = "password";
+        String token = "jwt-token";
+        LoginRequest request = new LoginRequest(username, password);
+
+
+        Authentication authentication = mock(Authentication.class);
+
+        when(authenticationManager.authenticate(any(Authentication.class)))
+                .thenReturn(authentication);
+
+        when(jwtService.generateToken(username))
+                .thenReturn(token);
+
+        JwtResponse response = authService.login(request);
+
+        assertEquals(token, response.token());
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCredentialsAreInvalid() {
+
+        String username = "username";
+        String password = "password";
+
+
+        LoginRequest request = new LoginRequest(username, password);
+
+        when(authenticationManager.authenticate(any(Authentication.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() -> authService.login(request));
+        verify(jwtService, never()).generateToken(username);
+
+    }
 
 }

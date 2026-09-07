@@ -66,21 +66,24 @@ public class AuthService {
                         loginRequest.username(),
                         loginRequest.password()
                 )
-        ); // это я так понял уже результат аутентификации либо ошибка либо успех (что внутри?)
-        /*
-        UsernamePasswordAuthenticationToken → заявка на вход
-        Пользователь говорит например:
-        POST /auth/login
-        {
-            "username": "admin",
-            "password": "12345"
-        }
+        ); /*
+         * UsernamePasswordAuthenticationToken(username, password)
+         * represents an unauthenticated login attempt.
+         *
+         * AuthenticationManager verifies the credentials.
+         * If they are valid, it returns an authenticated Authentication object.
+         * If they are invalid, an AuthenticationException is thrown.
+         *
+         * The returned Authentication usually contains:
+         * - principal: authenticated user (usually UserDetails)
+         * - authorities: user's roles/permissions
+         * - credentials: usually null after successful authentication
          */
 
-        UserDetails user =
-                (UserDetails) authentication.getPrincipal();
-        //@AuthenticationPrincipal UserDetails userDetails
-        String token = jwtService.generateToken(user.getUsername());
+
+        // @AuthenticationPrincipal is typically used in controller methods
+        // to inject the currently authenticated user from the SecurityContext.
+        String token = jwtService.generateToken(loginRequest.username());
         return new JwtResponse(token);
     }
 
