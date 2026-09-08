@@ -71,9 +71,9 @@ public class AuthorService {
 
     @Transactional
     public void deleteAuthor(Long authorId) {
-        var author = bookStoreRepository.findById(authorId).orElseThrow(
+        var author = authorRepository.findById(authorId).orElseThrow(
                 () -> new EntityNotFoundException("Book with id " + authorId + " not found"));
 
-        bookStoreRepository.delete(author);
+        authorRepository.delete(author);
     }
 }
