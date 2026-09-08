@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AlreadyExistsException.class)
     public ResponseEntity<ErrorResponseDto> handleUsernameAlreadyExists(AlreadyExistsException e) {
-        log.error("Handle AlreadyExistsException ", e);
+        log.warn("Resource already exists: {}", e.getMessage());
         var error = new ErrorResponseDto(
                 "Conflict",
                 e.getMessage(),
@@ -99,7 +99,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleEntityNotFound(EntityNotFoundException e) {
-        log.error("Handle EntityNotFoundException ", e);
+        log.warn("Entity not found: {}", e.getMessage());
         var error = new ErrorResponseDto(
                 "Entity not found",
                 e.getMessage(),
@@ -112,7 +112,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDto> handleAccessDenied(AccessDeniedException e) {
-        log.error("Handle AccessDeniedException ", e);
+        log.warn("Access denied");
         var error = new ErrorResponseDto(
                 "Access denied",
                 "You do not have permission to access this resource",
@@ -125,7 +125,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponseDto> handleAuthentication(AuthenticationException e) {
-        log.error("Handle AuthenticationException ", e);
+        log.warn("Authentication failed");
         var error = new ErrorResponseDto(
                 "Unauthorized",
                 "Authentication failed",
@@ -138,20 +138,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponseDto> handleBadCredentials(BadCredentialsException e) {
-        log.error("Handle BadCredentialsException ", e);
+        log.warn("Authentication failed: bad credentials");
         var error = new ErrorResponseDto(
                 "Unauthorized",
                 "Invalid username or password",
                 LocalDateTime.now()
         );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED) //401
                 .body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidation(MethodArgumentNotValidException e) {
         // Spring не может провалидировать @RequestBody, который помечен @Valid.
-        log.error("Validation failed ", e);
+        log.warn("Validation failed ", e);
 
         String message = e.getBindingResult()
                 .getFieldErrors()
@@ -172,7 +172,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDto> handleIllegalArgument(IllegalArgumentException e) {
 
-        log.error("Handle IllegalArgumentException ", e);
+        log.warn("Illegal argument: {}", e.getMessage());
         var error = new ErrorResponseDto(
                 "Illegal Argument",
                 e.getMessage(),

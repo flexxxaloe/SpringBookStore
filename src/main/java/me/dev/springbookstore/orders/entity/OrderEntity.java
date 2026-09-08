@@ -27,7 +27,7 @@ public class OrderEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true) // эт че такое
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true) // Removing an OrderItem from the Order also deletes it from the database.
     private List<OrderItemEntity> items = new ArrayList<>();
 
     @Column(nullable = false)
