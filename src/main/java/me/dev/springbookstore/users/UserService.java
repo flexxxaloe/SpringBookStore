@@ -1,5 +1,6 @@
 package me.dev.springbookstore.users;
 
+import jakarta.persistence.EntityNotFoundException;
 import me.dev.springbookstore.users.dto.ChangeUserRoleRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +18,7 @@ public class UserService {
     @Transactional
     public void changeRole(Long id, ChangeUserRoleRequest request) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         user.setRole(request.role());
     }

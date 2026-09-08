@@ -10,11 +10,13 @@ public record BookCreateRequest (
 
 
         @NotBlank
+        @Size(max = 255)
         String title,
 
         @NotNull
         Long authorId,
 
+        @Size(max = 255) // change later to 500
         String description,
 
         @NotNull
@@ -25,10 +27,12 @@ public record BookCreateRequest (
         Year writtenYear,
 
         @NotNull
-        @PositiveOrZero
+        @Min(0)
+        @Max(1_000_000)
         Integer amount,
 
         @NotNull
-        @Positive
+        @Min(1)
+        @Max(100_000_000) //price in cents
         Long price
 ) {}

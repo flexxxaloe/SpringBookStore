@@ -20,7 +20,8 @@ public record BookPatchRequest (
         @PastOrPresent
         Year writtenYear,
 
-        @PositiveOrZero
+        @Min(0)
+        @Max(1_000_000)
         Integer amount,
 
         @Positive
