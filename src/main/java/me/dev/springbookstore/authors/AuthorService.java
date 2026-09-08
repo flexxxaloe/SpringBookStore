@@ -4,6 +4,7 @@ package me.dev.springbookstore.authors;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import me.dev.springbookstore.authors.dto.AuthorCreateRequest;
+import me.dev.springbookstore.authors.dto.AuthorPatchRequest;
 import me.dev.springbookstore.authors.dto.AuthorResponse;
 import me.dev.springbookstore.books.BookMapper;
 import me.dev.springbookstore.books.BookStoreRepository;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -70,9 +73,77 @@ public class AuthorService {
     }
 
     @Transactional
+    public AuthorResponse updateAuthor(long authorId, AuthorCreateRequest request) {
+
+        AuthorEntity entityAuthor = authorRepository.findById(authorId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Author with id " + authorId + " not found"
+                        )
+                );
+
+        if (authorRepository.existsByNameAndBornDateAndIdNot(
+                request.name(),
+                request.bornDate(),
+                authorId
+        )) {
+            throw new AuthorAlreadyExistsException(
+                    "Author with name '" + request.name()
+                            + "' and born date '" + request.bornDate()
+                            + "' already exists"
+            );
+        }
+
+
+        AuthorEntity entity = authorMapper.updateAuthorEntity(entityAuthor, request);
+
+        return authorMapper.authorEntityToAuthorResponse(entity);
+    }
+
+    @Transactional
+    public AuthorResponse patchAuthor(long authorId, AuthorPatchRequest request) {
+
+        AuthorEntity entityAuthor = authorRepository.findById(authorId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Author with id " + authorId + " not found"
+                        )
+                );
+
+        if (request.name() != null && request.name().isBlank()) {
+            throw new IllegalArgumentException("Author name must not be blank");
+        }
+
+        String newName = request.name() != null
+                ? request.name()
+                : entityAuthor.getName();
+
+        LocalDate newBornDate = request.bornDate() != null
+                ? request.bornDate()
+                : entityAuthor.getBornDate();
+
+        if (authorRepository.existsByNameAndBornDateAndIdNot(
+                newName,
+                newBornDate,
+                authorId
+        )) {
+            throw new AuthorAlreadyExistsException(
+                    "Author with name '" + newName
+                            + "' and born date '" + newBornDate
+                            + "' already exists"
+            );
+        }
+
+        authorMapper.patchAuthorEntity(entityAuthor, request);
+
+
+        return authorMapper.authorEntityToAuthorResponse(entityAuthor);
+    }
+
+    @Transactional
     public void deleteAuthor(Long authorId) {
         var author = authorRepository.findById(authorId).orElseThrow(
-                () -> new EntityNotFoundException("Book with id " + authorId + " not found"));
+                () -> new EntityNotFoundException("Author with id " + authorId + " not found"));
 
         authorRepository.delete(author);
     }

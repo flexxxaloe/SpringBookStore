@@ -50,7 +50,7 @@ public class BookMapper {
         );
     }
 
-    public void patchBookBookEntity(BookEntity entity, BookPatchRequest request) {
+    public void patchBookEntity(BookEntity entity, BookPatchRequest request) {
 
         if (request.authorId() != null) {
             AuthorEntity author = authorRepository.findById(request.authorId())

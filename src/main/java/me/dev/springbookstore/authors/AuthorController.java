@@ -3,6 +3,7 @@ package me.dev.springbookstore.authors;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import me.dev.springbookstore.authors.dto.AuthorCreateRequest;
+import me.dev.springbookstore.authors.dto.AuthorPatchRequest;
 import me.dev.springbookstore.authors.dto.AuthorResponse;
 import me.dev.springbookstore.books.BookStoreService;
 import me.dev.springbookstore.books.dto.BookResponse;
@@ -24,7 +25,7 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
-
+    private final BookStoreService bookStoreService;
 
     @GetMapping("/{id}/books")
     public ResponseEntity<Page<BookResponse>> getBooksOfAuthor(
@@ -57,8 +58,26 @@ public class AuthorController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<AuthorResponse> updateAuthor(@PathVariable("id") long authorId, @Valid @RequestBody AuthorCreateRequest authorUpdate) {
+        log.info("Calling updateAuthor with id {}", authorId);
+        var updated = authorService.updateAuthor(authorId, authorUpdate);
+        return ResponseEntity.ok(updated);
+
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}")
+    public ResponseEntity<AuthorResponse> patchAuthor(@PathVariable("id") long authorId, @Valid @RequestBody AuthorPatchRequest authorUpdate) {
+        log.info("Calling patchAuthor with id {}", authorId);
+        var updated = authorService.patchAuthor(authorId, authorUpdate);
+        return ResponseEntity.ok(updated);
+
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<AuthorResponse> deleteAuthor(@PathVariable("id") Long authorId) {
+    public ResponseEntity<Void> deleteAuthor(@PathVariable("id") Long authorId) {
         log.info("Calling deleteAuthor with id {}", authorId);
 
         authorService.deleteAuthor(authorId);

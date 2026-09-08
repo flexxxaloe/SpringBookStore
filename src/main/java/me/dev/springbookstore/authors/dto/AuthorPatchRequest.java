@@ -1,22 +1,17 @@
 package me.dev.springbookstore.authors.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 
 import java.time.LocalDate;
 
-public record AuthorCreateRequest (
+public record AuthorPatchRequest(
 
-        @NotBlank
-        //@Size(max = 255)
         String name,
 
         String bio,
 
-        @NotNull
         @Past
         LocalDate bornDate
+) {
 
-) {}
-
+}
