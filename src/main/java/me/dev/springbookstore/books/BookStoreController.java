@@ -38,16 +38,7 @@ public class BookStoreController {
 
     @GetMapping
     public String home() {
-        return """
-                Book Store API
-                
-                Available endpoints:
-                GET  /auth/register   - Register
-                GET  /auth/login      - Login
-                GET  /catalog/{id}    - Get book by ID
-                GET  /catalog/search  - Search books
-                POST /catalog         - Add a new book
-                """;
+        return "Book Store API. See /swagger-ui/index.html for documentation.";
     }
 
 
