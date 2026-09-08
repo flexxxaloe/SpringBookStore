@@ -1,7 +1,6 @@
 package me.dev.springbookstore.books;
 
 
-import jakarta.persistence.EntityNotFoundException;
 import me.dev.springbookstore.authors.AuthorEntity;
 import me.dev.springbookstore.authors.AuthorRepository;
 import me.dev.springbookstore.books.dto.BookCreateRequest;
@@ -11,13 +10,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class BookMapper {
-
-    private final AuthorRepository authorRepository;
-
-    public BookMapper(AuthorRepository authorRepository) {
-        this.authorRepository = authorRepository;
-    }
-
 
     public BookEntity bookRequestToBookEntity(BookCreateRequest request,
                                               AuthorEntity author) {
@@ -51,13 +43,6 @@ public class BookMapper {
     }
 
     public void patchBookEntity(BookEntity entity, BookPatchRequest request) {
-
-        if (request.authorId() != null) {
-            AuthorEntity author = authorRepository.findById(request.authorId())
-                    .orElseThrow(() -> new EntityNotFoundException("Author not found"));
-
-            entity.setAuthor(author);
-        }
 
         if (request.title() != null) {
             entity.setTitle(request.title());

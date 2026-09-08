@@ -96,6 +96,14 @@ public class BookStoreService {
                 .orElseThrow(() -> new EntityNotFoundException("Book with id " + bookId + " not found"));
 
 
+        if (request.authorId() != null) {
+            AuthorEntity author = authorRepository.findById(request.authorId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Author with id " + request.authorId() + " not found"));
+
+            entityBook.setAuthor(author);
+        }
+
         mapper.patchBookEntity(entityBook, request);
 
         // var saved = bookStoreRepository.save(entityBook); entity стала managed → mapper изменил её поля → при завершении @Transactional Hibernate сам выполнит UPDATE.
