@@ -7,11 +7,12 @@ import java.time.Year;
 
 public record BookPatchRequest (
 
-
+        @Size(max = 255)
         String title,
 
         Long authorId,
 
+        @Size(max = 255)
         String description,
 
         @PastOrPresent
@@ -25,5 +26,6 @@ public record BookPatchRequest (
         Integer amount,
 
         @Positive
+        @Max(100_000_000)
         Long price
 ) {}
