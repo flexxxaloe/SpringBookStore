@@ -31,6 +31,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -114,6 +115,101 @@ public class IntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
+    @Test
+    void shouldPreventOversellingWhenTwoConcurrentOrdersBuyLastBook()
+            throws Exception {
+
+        AuthorEntity author = new AuthorEntity();
+        author.setName("Test Author");
+        author.setBornDate(LocalDate.now());
+        authorRepository.saveAndFlush(author);
+
+        BookEntity book = new BookEntity();
+        book.setTitle("Book 1");
+        book.setAmount(1);
+        book.setPublicationDate(LocalDate.now());
+        book.setPrice(1000L);
+        book.setAuthor(author);
+        bookRepository.saveAndFlush(book);
+
+        Long bookId = book.getId();
+
+        // Release both workers only after both have read the last copy.
+        CyclicBarrier bothOrdersReadBook = new CyclicBarrier(2);
+
+        // Replace this lookup with a real JPA read followed by a test-only pause.
+        doAnswer(invocation -> {
+            BookEntity result = entityManager.find(BookEntity.class, bookId);
+
+            bothOrdersReadBook.await(10, TimeUnit.SECONDS);
+
+            return Optional.ofNullable(result);
+        }).when(bookRepository).findById(bookId);
+
+        // Pass the authenticated user to both worker threads.
+        ExecutorService executor =
+                new DelegatingSecurityContextExecutorService(
+                        Executors.newFixedThreadPool(2)
+                );
+
+        try {
+            Callable<RuntimeException> purchase = () -> {
+                try {
+                    var item = new OrderItemCreateRequest(bookId, 1);
+                    orderService.createOrder(
+                            new OrderCreateRequest(List.of(item))
+                    );
+                    return null;
+                } catch (RuntimeException exception) {
+                    return exception;
+                }
+            };
+
+            Future<RuntimeException> first = executor.submit(purchase);
+            Future<RuntimeException> second = executor.submit(purchase);
+
+            RuntimeException firstError =
+                    first.get(20, TimeUnit.SECONDS);
+
+            RuntimeException secondError =
+                    second.get(20, TimeUnit.SECONDS);
+
+            // XOR: exactly one result must be null (success).
+            assertThat((firstError == null) ^ (secondError == null))
+                    .as("Exactly one order should succeed; first error: %s; second error: %s",
+                            firstError, secondError)
+                    .isTrue();
+
+            RuntimeException failedOrderError =
+                    firstError != null ? firstError : secondError;
+
+            assertThat(failedOrderError)
+                    .isInstanceOf(OptimisticLockingFailureException.class);
+
+            // Read directly through JPA to avoid entering the two-worker barrier again.
+            BookEntity savedBook =
+                    entityManager.find(BookEntity.class, bookId);
+
+            assertThat(savedBook.getAmount()).isZero();
+            assertThat(orderRepository.count()).isEqualTo(1);
+
+            // Verify that the failed order left no order item behind.
+            Long orderItemCount = entityManager.createQuery(
+                    "select count(item) from OrderItemEntity item",
+                    Long.class
+            ).getSingleResult();
+
+            assertThat(orderItemCount).isEqualTo(1L);
+        } finally {
+            // Ensure the executor is shut down even if the test fails.
+            executor.shutdownNow();
+            // Verify that the worker threads actually terminate.
+            boolean terminated = executor.awaitTermination(5, TimeUnit.SECONDS);
+            assertThat(terminated)
+                    .as("Order worker threads should terminate")
+                    .isTrue();
+        }
+    }
 
     @Test
     void shouldCreateOrderAndDecreaseBookAmount() {
