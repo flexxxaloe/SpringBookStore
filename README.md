@@ -52,10 +52,7 @@ bash ./mvnw -version
 
 Check that Maven reports Java 17. If necessary, set JAVA_HOME to your JDK installation. When using an IDE, configure the same six variables in the application's run configuration.
 
-JWT_SECRET is used as raw UTF-8 key bytes and must contain at least 32 bytes. The current .env.example lists the variables, but its JWT placeholder is too short and must be replaced.
-
-Docker Compose can read a root .env file automatically. The Java application does **not** automatically load it: pass the values through the terminal or IDE as above. .env is not currently listed in .gitignore; add it before keeping credentials there and do not commit that file.
-
+JWT_SECRET is used as raw UTF-8 key bytes and must contain at least 32 bytes. The `.env.example` file lists the required variables and example values; configure them as environment variables in your terminal or IDE before starting the application.
 ### 2. Start PostgreSQL
 
 ```text
@@ -63,8 +60,7 @@ docker compose up -d
 docker compose logs postgres
 ```
 
-Wait until PostgreSQL reports that it is ready to accept connections. The datasource is jdbc:postgresql://localhost:5432/bookstore. The named Docker volume retains data between restarts. For an existing volume, use its original database credentials: changing environment variables does not change an existing user's password.
-
+Wait until PostgreSQL reports that it is ready to accept connections. The datasource is jdbc:postgresql://localhost:5432/bookstore. The named Docker volume retains data between restarts.
 ### 3. Start the application
 
 PowerShell:
@@ -145,7 +141,7 @@ POST /catalog — replace authorId with the returned author ID:
 
 ### 3. Search and purchase as USER
 
-GET /catalog/search?title=Demo&page=0&size=20 and GET /catalog/{id} are public. GET /catalog returns an informational message, not the book list.
+GET /catalog/search?title=Demo&page=0&size=20 and GET /catalog/{id} are public endpoints. GET /catalog returns a short API information message.
 
 Switch back to the reader's token. POST /orders — use the created book ID:
 
@@ -181,22 +177,22 @@ bash ./mvnw verify
 
 Tests supply their own configuration and PostgreSQL container. They do not need the development Compose database or the application environment variables above. The first run may download dependencies and container images.
 
-The last full local verification on September 9, 2026 passed 15 tests: 12 unit tests and 3 service integration tests. The integration tests cover:
+The last full local verification on September 13, 2026 passed 14 tests: 11 unit tests and 3 service integration tests. The integration tests cover:
 
 - Successful order creation and a reduced stock count.
 - Rollback when a later item has insufficient stock.
-- Two orders reading the last copy before continuing: exactly one succeeds, the other encounters an optimistic locking failure, and only one order/item remains.
+- Two concurrent orders reading the last available copy before either proceeds: exactly one succeeds, the other encounters an optimistic locking failure, and only one order and one order item remain.
 
-The concurrency test intercepts one repository lookup, performs a real JPA read and synchronizes workers with a barrier. It tests the service and database, not HTTP status mapping. A control run without @Version made it fail because both orders succeeded.
+The concurrency test overrides one `findById` call with a real JPA read and uses a barrier to ensure that both worker threads read the last available copy before either proceeds. It verifies the service and database behavior rather than HTTP response mapping. As a control, removing `@Version` caused both concurrent orders to succeed, making the test fail.
 
-HTTP security/ownership integration tests and GitHub Actions CI are not yet included. Reports are written to target/surefire-reports.
+HTTP security/ownership integration tests and GitHub Actions CI are not yet included.
 
 ## API documentation status
 
-The springdoc Swagger UI dependency is installed. Its default UI path is /swagger-ui/index.html; the OpenAPI description is at /v3/api-docs. The current security configuration requires authentication for these paths, and a Bearer scheme has not yet been configured. The browser login-and-try workflow is therefore not ready; use an HTTP client for now.
+The springdoc Swagger UI dependency is installed. Its default UI path is /swagger-ui/index.html; the OpenAPI description is at /v3/api-docs. The current security configuration requires authentication for these paths, and a Bearer scheme has not yet been configured. Swagger-based authenticated requests are therefore not fully configured yet; use Postman or another HTTP client for authenticated API testing.
 
 ## Design and limitations
 
 The code follows Controller → Service → Repository. DTOs are mapped manually. Order creation is transactional; book versions detect conflicting writes. Application errors are handled centrally, including optimistic locking conflicts mapped to 409.
 
-Remaining work includes HTTP-level security verification, completing PATCH field limits, configuring Swagger authentication and CI. The project has no payment integration or refresh-token flow. It is a learning portfolio project, not a deployed commercial bookstore.
+Remaining work includes HTTP-level security verification, configuring Swagger authentication and CI. The project has no payment integration or refresh-token flow. It is a learning portfolio project, not a deployed commercial bookstore.
