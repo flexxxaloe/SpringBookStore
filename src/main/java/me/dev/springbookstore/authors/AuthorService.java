@@ -28,11 +28,6 @@ public class AuthorService {
 
 
     public Page<BookResponse> getBooksOfAuthor(Long authorId, Pageable pageable) {
-        //findAllByAuthorId(Long authorId, Pageable pageable)
-        //findAllByAuthorId(Long authorId)
-
-        //еще через Jpa Author author = authorRepository.findById(id).orElseThrow();
-        // return author.getBooks();
 
         authorRepository.findById(authorId)
                 .orElseThrow(() -> new EntityNotFoundException(
