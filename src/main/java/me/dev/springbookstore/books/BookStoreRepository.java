@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface BookStoreRepository extends JpaRepository<BookEntity, Long> {
 
+    // n+1
     Page<BookEntity> findByAuthorId(Long authorId, Pageable pageable);
 
     @EntityGraph(attributePaths = "author")
